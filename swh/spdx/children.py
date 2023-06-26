@@ -1,149 +1,100 @@
-import logging
-from typing import Dict, List
+from gql import gql
 
-from gql import Client, gql
-from gql.transport.aiohttp import AIOHTTPTransport
-
-transport = AIOHTTPTransport(url="https://archive.softwareheritage.org/graphql/")
-
-client = Client(transport=transport, fetch_schema_from_transport=True)
+from swh.spdx.connection import set_connection
 
 
-def get_initial_query(dir_swhid: str) -> str:
+def get_query():
     """
     Constructs the initial GraphQL query to retrieve the directory entries of a given SWHID.
 
     Args:
-        dir_swhid (str): The SWHID of the directory.
+        None
 
     Returns:
-        str: The constructed GraphQL query in string format.
+        gql.Query: constructed gql query with swhid and cursor as a parameters
     """
-    query = f"""
-        query Getdir {{
-          directory(
-            swhid: "{dir_swhid}"
-          ) {{
-            swhid
-            entries(first: 12) {{
-              totalCount
-              pageInfo {{
-                endCursor
-              }}
-              edges {{
-                node {{
-                  name {{ text }}
-                  target {{
-                    swhid
-                    node {{
-                      ... on Content{{
-                        hashes{{
-                          sha1
-                          sha256
-                        }}
-                      }}
-                      ... on Directory{{
-                        id
-                      }}
-                    }}
-                  }}
-                }}
-              }}
-            }}
-          }}
-        }}
+    query = gql(
         """
+      query Getdir($swhid: SWHID!, $cursor: String) {
+                directory(
+                  swhid: $swhid
+                ) {
+                  swhid
+                  entries(first: 12, after: $cursor
+                  ){
+                    totalCount
+                    pageInfo {
+                      endCursor
+                      hasNextPage
+                    }
+                    edges {
+                      node {
+                        name { text }
+                        target {
+                          swhid
+                          node {
+                            ... on Content{
+                              hashes{
+                                sha1
+                                sha256
+                              }
+                            }
+                            ... on Directory{
+                              id
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+
+        """
+    )
     return query
 
 
-def get_query_with_cursor(dir_swhid: str, cursor: str) -> str:
-    """
-    Constructs a GraphQL query to retrieve directory entries with a specified cursor.
-
-    Args:
-        dir_swhid (str): The SWHID of the directory.
-        cursor (str): The cursor value for pagination.
-
-    Returns:
-        str: The constructed GraphQL query in string format.
-    """
-    query = f"""
-        query Getdir {{
-          directory(
-            swhid: "{dir_swhid}"
-          ) {{
-            swhid
-            entries(first: 12, after: "{cursor}") {{
-              totalCount
-              pageInfo {{
-                endCursor
-              }}
-              edges {{
-                node {{
-                  name {{ text }}
-                  target {{
-                    swhid
-                    node {{
-                      ... on Content{{
-                        hashes{{
-                          sha1
-                          sha256
-                        }}
-                      }}
-                      ... on Directory{{
-                        id
-                      }}
-                    }}
-                  }}
-                }}
-              }}
-            }}
-          }}
-        }}
-        """
-    return query
-
-
-def get_child(dir_swhid: str) -> Dict[str, List]:
+def get_child(dir_swhid: str, dire_name):
     """
     Retrieves the child details of a directory specified by its SWHID.
 
     Args:
         dir_swhid (str): The SWHID of the directory.
+        dire_name (str): The name of the directory whose children details needs to be retrieved.
 
     Returns:
         Dict[str, List]: A dictionary containing the child details,
-        where the keys are child names and the values are child SWHIDs and checksums.
+        where the keys are child names and the values is a list of swhid,
+        checksums and directory path of child.
     """
-
-    try:
-        result = client.execute(gql(get_initial_query(dir_swhid)))
-        child_details = {}
-        edges = result["directory"]["entries"]["edges"]
+    if not dir_swhid.split(":")[2] == "dir":
+        raise ValueError(f"{dir_swhid} is not a valid directory SWHID")
+    client = set_connection()
+    has_next_page = True
+    cursor = None
+    # Initialize child details as empty dictionary
+    child_details = {}
+    while has_next_page:
+        query = get_query()
+        params = {"swhid": dir_swhid, "cursor": cursor}
+        response = client.execute(query, params)
+        page_info = response["directory"]["entries"]["pageInfo"]
+        has_next_page = page_info["hasNextPage"]
+        cursor = page_info["endCursor"]
+        edges = response["directory"]["entries"]["edges"]
         for edge in edges:
             node = edge["node"]
             child_name = node["name"]["text"]
+            child_path = f"{dire_name}/{child_name}"
             child_swhid = node["target"]["swhid"]
             child_checksums = node["target"]["node"]
-            child_details[child_name] = [child_swhid, child_checksums]
-        while result["directory"]["entries"]["pageInfo"]["endCursor"] is not None:
-            new_cursor = result["directory"]["entries"]["pageInfo"]["endCursor"]
-            try:
-                result = client.execute(
-                    gql(get_query_with_cursor(dir_swhid, new_cursor))
-                )
-            except Exception as e:
-                logging.exception(e)
+            # Appends items in child_details with key as child_name
+            # and value as list of child_swhid, child_checksums and child_path
+            child_details[child_name] = [
+                child_swhid,
+                child_checksums,
+                child_path,
+            ]
 
-            edges = result["directory"]["entries"]["edges"]
-            for edge in edges:
-                node = edge["node"]
-                child_name = node["name"]["text"]
-                child_swhid = node["target"]["swhid"]
-                child_checksums = node["target"]["node"]
-                child_details[child_name] = [child_swhid, child_checksums]
-
-        return child_details
-    except Exception as e:
-        logging.exception(e)
-        return {}
+    return child_details

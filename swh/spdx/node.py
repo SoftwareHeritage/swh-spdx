@@ -1,75 +1,64 @@
-from typing import Dict
-
 from swh.spdx.children import get_child
 
 
 class Node:
     """Represents a content file or subdirectory node in the directory structure."""
 
-    def __init__(self, name, swhid) -> None:
+    def __init__(self, name, swhid, path="", checksums="") -> None:
         """
         Initialize a new instance of the Node class.
 
         Args:
             name (str): The name of the node.
             swhid (str): The Software Heritage identifier of the node.
+            path (str): The directory path of node object.
+            checksums (str): The dictionary containing checksums of node object.
         """
 
         self.name = name
         self.swhid = swhid
-        self.path = ""
-        self.checksums: Dict[str, str] = {}
+        self.path = path
+        self.is_directory = self.swhid.split(":")[2] == "dir"
+        self.checksums = checksums
 
-    def is_directory(self) -> bool:
-        """
-        Check if the node represents a directory.
-
-        Returns:
-            bool: True if the node represents a directory, False otherwise.
-        """
-        return self.swhid.split(":")[2] == "dir"
-
-    def get_children(self) -> Dict:
+    def get_children(self):
         """
         Retrieve the children nodes of the current directory node.
 
         Returns:
             dict: A dictionary of child nodes,
-                  where the keys are child names and the values are SWHIDs.
+            where the keys are child names and the values is a list of swhid,
+            checksums and directory path of child node.
 
-        Raises:
-            ValueError: If content object's swhid is passed to get_children()
         """
-        if self.is_directory():
-            return get_child(self.swhid)
+        if self.is_directory:
+            return get_child(self.swhid, self.path)
         else:
-            raise ValueError(f"{self.swhid}does not references to a directory object")
+            raise ValueError(f"{self.swhid} is not a valid directory SWHID")
 
-    def set_path(self, path_piece) -> None:
+    def set_path(self, node_properties) -> None:
         """
-        Set the path of the node.
+        Set the directory path of the node.
 
         Args:
-            path_piece (str): The path piece to append to the current path.
+            node_properties (dict): list of swhid, checksums and directory path of the node
 
         Returns:
             None
         """
-        if not self.path:
-            separator = "/"
-            self.path = separator.join([path_piece, self.name])
+        self.path = node_properties[2]
 
-    def set_checksums(self, child_properties) -> None:
+    def set_checksums(self, node_properties) -> None:
         """
         Set the checksums of the node.
 
         Args:
-            child_properties (dict): The properties of the child node.
+            node_properties (dict): list of swhid, checksums and directory path of the node
 
         Returns:
             None
         """
-        if self.is_directory():
-            self.checksums = {"sha1": child_properties[1]["id"]}
+        if self.is_directory:
+            self.checksums = {"sha1": node_properties[1]["id"]}
         else:
-            self.checksums = child_properties[1]["hashes"]
+            self.checksums = node_properties[1]["hashes"]
