@@ -1,83 +1,31 @@
-from gql import gql
-
-from swh.spdx.connection import set_connection
-
-
-def get_query():
-    """
-    Constructs the initial GraphQL query to retrieve the directory entries of a given SWHID.
-
-    Args:
-        None
-
-    Returns:
-        gql.Query: constructed gql query with swhid and cursor as a parameters
-    """
-    query = gql(
-        """
-      query Getdir($swhid: SWHID!, $cursor: String) {
-                directory(
-                  swhid: $swhid
-                ) {
-                  swhid
-                  entries(first: 12, after: $cursor
-                  ){
-                    totalCount
-                    pageInfo {
-                      endCursor
-                      hasNextPage
-                    }
-                    edges {
-                      node {
-                        name { text }
-                        target {
-                          swhid
-                          node {
-                            ... on Content{
-                              hashes{
-                                sha1
-                                sha256
-                              }
-                            }
-                            ... on Directory{
-                              id
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-
-        """
-    )
-    return query
+from swh.model.swhids import CoreSWHID, ObjectType
+from swh.spdx.connection import get_graphql_client
+from swh.spdx.query import get_query_children
 
 
-def get_child(dir_swhid: str, dire_name):
+def get_child(dir_swhid: CoreSWHID, dir_name: str) -> dict:
     """
     Retrieves the child details of a directory specified by its SWHID.
 
     Args:
-        dir_swhid (str): The SWHID of the directory.
-        dire_name (str): The name of the directory whose children details needs to be retrieved.
+        dir_swhid (CoreSWHID): The SWHID of the directory.
+        dir_name (str): The name of the directory whose children details needs to be retrieved.
 
     Returns:
-        Dict[str, List]: A dictionary containing the child details,
+        Dict[str: List]: A dictionary containing the child details,
         where the keys are child names and the values is a list of swhid,
         checksums and directory path of child.
     """
-    if not dir_swhid.split(":")[2] == "dir":
-        raise ValueError(f"{dir_swhid} is not a valid directory SWHID")
-    client = set_connection()
+    if not str(dir_swhid).split(":")[2] == "dir":
+        raise ValueError(f"{str(dir_swhid)} is not a valid directory SWHID")
+    client = get_graphql_client()
     has_next_page = True
     cursor = None
     # Initialize child details as empty dictionary
     child_details = {}
+    query = get_query_children()
     while has_next_page:
-        query = get_query()
-        params = {"swhid": dir_swhid, "cursor": cursor}
+        params = {"swhid": str(dir_swhid), "cursor": cursor}
         response = client.execute(query, params)
         page_info = response["directory"]["entries"]["pageInfo"]
         has_next_page = page_info["hasNextPage"]
@@ -86,8 +34,20 @@ def get_child(dir_swhid: str, dire_name):
         for edge in edges:
             node = edge["node"]
             child_name = node["name"]["text"]
-            child_path = f"{dire_name}/{child_name}"
-            child_swhid = node["target"]["swhid"]
+            child_path = f"{dir_name}/{child_name}"
+            str_child_swhid = node["target"]["swhid"]
+            if str_child_swhid.split(":")[2] == "dir":
+                # if child is a directory object
+                child_swhid = CoreSWHID(
+                    object_type=ObjectType.DIRECTORY,
+                    object_id=bytes.fromhex(str_child_swhid.split(":")[3]),
+                )
+            else:
+                # if child is a content object
+                child_swhid = CoreSWHID(
+                    object_type=ObjectType.CONTENT,
+                    object_id=bytes.fromhex(str_child_swhid.split(":")[3]),
+                )
             child_checksums = node["target"]["node"]
             # Appends items in child_details with key as child_name
             # and value as list of child_swhid, child_checksums and child_path

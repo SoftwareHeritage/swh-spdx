@@ -2,7 +2,7 @@ from gql import Client
 from gql.transport.aiohttp import AIOHTTPTransport
 
 
-def set_connection():
+def get_graphql_client():
     """
     Sets connection to the Graphql server of Software heritage
 

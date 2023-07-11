@@ -1,7 +1,9 @@
 from swh.spdx.node import Node
 
 
-def traverse_root(node: Node, first_iteration=False, node_collection={}):
+def traverse_root(
+    node: Node, first_iteration: bool = False, node_collection: dict = {}
+) -> dict:
     """
     Recursively traverses the root directory and collects each node found.
 
@@ -11,7 +13,7 @@ def traverse_root(node: Node, first_iteration=False, node_collection={}):
         node_collection (dict): collection of nodes found
 
     Returns:
-        node_collection: Collection of nodes found in the root directory,
+        node_collection (dict): Collection of nodes found in the root directory,
         with keys as root-directory or sub-directories and value as a list of child nodes
     """
     # Set the path for the root directory node

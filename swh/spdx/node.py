@@ -1,16 +1,19 @@
+from swh.model.swhids import CoreSWHID
 from swh.spdx.children import get_child
 
 
 class Node:
     """Represents a content file or subdirectory node in the directory structure."""
 
-    def __init__(self, name, swhid, path="", checksums="") -> None:
+    def __init__(
+        self, name: str, swhid: CoreSWHID, path: str = "", checksums: dict = {}
+    ):
         """
         Initialize a new instance of the Node class.
 
         Args:
             name (str): The name of the node.
-            swhid (str): The Software Heritage identifier of the node.
+            swhid (CoreSWHID): The Software Heritage CORE identifier of the node.
             path (str): The directory path of node object.
             checksums (str): The dictionary containing checksums of node object.
         """
@@ -18,7 +21,7 @@ class Node:
         self.name = name
         self.swhid = swhid
         self.path = path
-        self.is_directory = self.swhid.split(":")[2] == "dir"
+        self.is_directory = str(self.swhid).split(":")[2] == "dir"
         self.checksums = checksums
 
     def get_children(self):
@@ -34,26 +37,26 @@ class Node:
         if self.is_directory:
             return get_child(self.swhid, self.path)
         else:
-            raise ValueError(f"{self.swhid} is not a valid directory SWHID")
+            raise ValueError(f"{str(self.swhid)} is not a valid directory CoreSWHID")
 
-    def set_path(self, node_properties) -> None:
+    def set_path(self, node_properties: list):
         """
         Set the directory path of the node.
 
         Args:
-            node_properties (dict): list of swhid, checksums and directory path of the node
+            node_properties (list): list of swhid, checksums and directory path of the node
 
         Returns:
             None
         """
         self.path = node_properties[2]
 
-    def set_checksums(self, node_properties) -> None:
+    def set_checksums(self, node_properties: list):
         """
         Set the checksums of the node.
 
         Args:
-            node_properties (dict): list of swhid, checksums and directory path of the node
+            node_properties (list): list of swhid, checksums and directory path of the node
 
         Returns:
             None
