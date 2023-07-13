@@ -16,7 +16,7 @@ def get_child(dir_swhid: CoreSWHID, dir_name: str) -> dict:
         where the keys are child names and the values is a list of swhid,
         checksums and directory path of child.
     """
-    if not str(dir_swhid).split(":")[2] == "dir":
+    if not dir_swhid.object_type == ObjectType.DIRECTORY:
         raise ValueError(f"{str(dir_swhid)} is not a valid directory SWHID")
     client = get_graphql_client()
     has_next_page = True
@@ -36,18 +36,7 @@ def get_child(dir_swhid: CoreSWHID, dir_name: str) -> dict:
             child_name = node["name"]["text"]
             child_path = f"{dir_name}/{child_name}"
             str_child_swhid = node["target"]["swhid"]
-            if str_child_swhid.split(":")[2] == "dir":
-                # if child is a directory object
-                child_swhid = CoreSWHID(
-                    object_type=ObjectType.DIRECTORY,
-                    object_id=bytes.fromhex(str_child_swhid.split(":")[3]),
-                )
-            else:
-                # if child is a content object
-                child_swhid = CoreSWHID(
-                    object_type=ObjectType.CONTENT,
-                    object_id=bytes.fromhex(str_child_swhid.split(":")[3]),
-                )
+            child_swhid = CoreSWHID.from_string(str_child_swhid)
             child_checksums = node["target"]["node"]
             # Appends items in child_details with key as child_name
             # and value as list of child_swhid, child_checksums and child_path

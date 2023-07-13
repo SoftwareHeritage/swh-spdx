@@ -1,4 +1,4 @@
-from swh.model.swhids import CoreSWHID
+from swh.model.swhids import CoreSWHID, ObjectType
 from swh.spdx.children import get_child
 
 
@@ -21,7 +21,7 @@ class Node:
         self.name = name
         self.swhid = swhid
         self.path = path
-        self.is_directory = str(self.swhid).split(":")[2] == "dir"
+        self.is_directory = self.swhid.object_type == ObjectType.DIRECTORY
         self.checksums = checksums
 
     def get_children(self):
