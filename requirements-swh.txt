@@ -3,3 +3,4 @@ swh.core[http] >= 0.3  # [http] is required by swh.core.pytest_plugin
 gql
 requests
 swh.model
+spdx_tools
