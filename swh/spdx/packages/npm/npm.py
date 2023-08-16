@@ -5,7 +5,8 @@ from swh.model.swhids import CoreSWHID
 from swh.spdx.node import Node
 from swh.spdx.packages.base import set_files
 from swh.spdx.packages.creation_info import set_creation_info
-from swh.spdx.packages.python.utils import (
+from swh.spdx.packages.npm.spdx_fields import get_metadata_npm
+from swh.spdx.packages.npm.utils import (
     get_dependency_packages,
     get_metadata_node,
     set_dependency_packages,
@@ -25,10 +26,11 @@ def generate_spdx(root_swhid: CoreSWHID):
     root_node = Node(name=".", swhid=root_swhid)
     node_collection = traverse_root(node=root_node, first_iteration=True)
     top_level_package_node = list(node_collection.keys())[1]
+    # Setting up CreationInfo
     creation_info = set_creation_info(top_level_package_node.name)
     spdx_document = Document(creation_info)
     metadata_node = get_metadata_node(node_collection)
-
+    # Implementing Top-level package
     (
         top_level_package,
         top_level_package_relationships,
@@ -40,7 +42,8 @@ def generate_spdx(root_swhid: CoreSWHID):
     )
 
     # Implementing Dependency packages
-    dependency_packages_list = get_dependency_packages(node_collection)
+    metadata_dict = get_metadata_npm(metadata_node)
+    dependency_packages_list = get_dependency_packages(metadata_dict)
     dependency_packages, dependency_package_relationships = set_dependency_packages(
         dependency_packages=dependency_packages_list,
         top_level_package_spdx_id=top_level_package_spdx_id,
@@ -59,5 +62,6 @@ def generate_spdx(root_swhid: CoreSWHID):
     spdx_document.packages = spdx_packages
     spdx_document.relationships = spdx_package_relationships
     spdx_document.files = files
+
     # Writes the spdx document in the current directory
     write_file(spdx_document, "spdx_document.spdx.json")
