@@ -1,5 +1,4 @@
 import re
-from typing import Tuple
 
 from spdx_tools.spdx.model import (
     Checksum,
@@ -100,11 +99,8 @@ class PackageFile:
         return SpdxNoAssertion()
 
 
-def set_files(
-    node_collection: dict, top_level_package_spdx_id: str
-) -> Tuple[list, list]:
-    """
-    Creates the SPDX File instance of files in a top level package
+def set_files(node_collection: dict, top_level_package_spdx_id: str):
+    """Creates the SPDX File instance of files in a top level package
 
     Args:
         node_collection (dict): Collection of nodes found in the root directory,
