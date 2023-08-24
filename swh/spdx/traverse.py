@@ -8,12 +8,12 @@ def traverse_root(
     Recursively traverses the root directory and collects each node found.
 
     Args:
-        node (Node): The current node to process.
-        first_iteration (bool): represents if the iteration is first or not
-        node_collection (dict): collection of nodes found
+        node: The current node to process.
+        first_iteration: represents if the iteration is first or not
+        node_collection: collection of nodes found
 
     Returns:
-        node_collection (dict): Collection of nodes found in the root directory,
+        node_collection: Collection of nodes found in the root directory,
         with keys as root-directory or sub-directories and value as a list of child nodes
     """
     # Set the path for the root directory node
