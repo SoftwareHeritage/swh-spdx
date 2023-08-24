@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from spdx_tools.spdx.model import Package, Relationship, RelationshipType
 
 from swh.spdx.content import get_content_from_hashes
@@ -8,36 +10,34 @@ from swh.spdx.packages.python.spdx_fields import (
 )
 
 
-def get_metadata_node(node_collection: dict):
+def get_dependency_packages(node_collection: dict, root_node: Node):
     """
-    Detects the metadata node in the top level package directory
-
-    Args:
-    node_collection (dict): Collection of nodes found in the root directory,
-    with keys as root-directory or sub-directories and value as a list of child nodes
-
-    Returns:
-        content_object (Node): metadata node
-    """
-    top_level_directory = list(node_collection.keys())[1]
-    for content_object in node_collection[top_level_directory]:
-        if content_object.name == "PKG-INFO":
-            return content_object
-    raise Exception("Metadata File not found!")
-
-
-def get_dependency_packages(node_collection: dict):
-    """
-    Detects dependencies of project
+    Detects potential dependencies of a Python project based on various sources.
 
     Args:
         node_collection (dict): Collection of nodes found in the root directory,
-        with keys as root-directory or sub-directories and value as a list of child nodes
+            with keys as root-directory or sub-directories and value as a list of child nodes
+            and also contains an extra key "METADATA_NODE" with value as the metadata file node
+            which the tool currently supports
+        root_node (Node): root node of the directory structure representing root directory node
 
     Returns:
-        dependency_packages (list): list of detected dependencies
+        dependency_packages (list): A list of detected potential dependencies.
+
+    Note:
+        This function attempts to identify potential dependencies based on common patterns
+        but does not cover all possible sources of dependencies. It currently supports
+        detection from common dependency management files like 'requirements.txt'.
+
+        The dependency detection can be complex due to variations in project
+        structures and practices. The use of 'requirements.txt' files is recommended by PEP 508,
+        but it's not mandatory. Therefore, this function might not capture all dependencies
+        accurately and may require additional refinement.
+
+        This part of the code is a starting point and may need further
+        improvements and customization.
     """
-    top_level_directory = list(node_collection.keys())[1]
+    top_level_directory = node_collection[root_node][0]
     for content_object in node_collection[top_level_directory]:
         if content_object.name == "requirements.txt":
             dependency_packages = []
@@ -51,7 +51,7 @@ def get_dependency_packages(node_collection: dict):
 
 def set_top_level_package(
     package_node: Node, node_collection: dict, metadata_node: Node
-):
+) -> Tuple[list, list, str]:
     """
     Creates a SPDX package instance of top level package
     and its relationship with the SPDX document
@@ -60,6 +60,8 @@ def set_top_level_package(
         package_node (Node): directory node acting as top level package
         node_collection (dict): Collection of nodes found in the root directory,
             with keys as root-directory or sub-directories and value as a list of child nodes
+            and also contains an extra key "METADATA_NODE" with value as the metadata file node
+            which the tool currently supports
         metadata_node (Node): metadata node of top level package
 
     Returns:
@@ -87,7 +89,6 @@ def set_top_level_package(
             supplier=top_level_package.get_supplier(),
             files_analyzed=top_level_package.get_file_analyzed_status(),
             verification_code=top_level_package.get_verification_code(),
-            checksums=top_level_package.get_checksums(),
             license_concluded=top_level_package.get_license_concluded(),
             license_info_from_files=top_level_package.get_license_info_from_files(),
             license_declared=top_level_package.get_license_declared(),
@@ -106,19 +107,21 @@ def set_top_level_package(
     return spdx_packages, spdx_relationships, top_level_package.get_spdx_id()
 
 
-def set_dependency_packages(dependency_packages: list, top_level_package_spdx_id: str):
+def set_dependency_packages(
+    dependency_packages: list, top_level_package_spdx_id: str
+) -> Tuple[list, list]:
     """
     Creates a SPDX package instance of dependency packages and their relationships
 
     Args:
         dependency_packages (dict): collection of dependency packages where key is package name
-        and value is package version
+            and value is package version
         top_level_package_spdx_id (str): SPDX id of top level package for creating relationships
 
     Returns:
         spdx_packages (list): list of dependency packages as SPDX packages
         spdx_package_relationships (list): list contain relationships between
-        various spdx elements with dependency packages
+            various spdx elements with dependency packages
     """
     spdx_packages = []
     spdx_relationships = []

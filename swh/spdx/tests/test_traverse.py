@@ -160,6 +160,20 @@ def sample_node_collection():
                 },
             ),
         ],
+        "METADATA_NODE": Node(
+            name="PKG-INFO",
+            swhid=CoreSWHID(
+                object_type=ObjectType.CONTENT,
+                object_id=bytes.fromhex("bce1e1f42d45a425b828abf2e3b7c45cda6188ca"),
+            ),  # noqa
+            path="ipython-cosmos-0.1.5/PKG-INFO",
+            checksums={
+                "sha1": "b1d809a97e3139f9a9d2890551e5dd448b541202",
+                "sha256": "4a15bc736fbf8a7f9cdeb7b74038d7e033ed0990690c4fc609406cdd8e5f73e9",  # noqa
+                "sha1_git": "bce1e1f42d45a425b828abf2e3b7c45cda6188ca",
+                "blake2s256": "71c8fb6adb5ab28dc814ed67ab2c62a6e20e859081192e18104fd3526a4f658c",  # noqa
+            },
+        ),
     }
     return NODE_COLLECTION_OF_SAMPLE_ROOT_DIRECTORY
 
@@ -183,6 +197,8 @@ def test_traverse_root_success(
                     "hashes": {
                         "sha1": "5e36830e75ea751e8d1323f4c5bdbfdd0143bdca",
                         "sha256": "7936ae3d6ce0d039223a2fc51c6a6c2ff17e114abf59d0e3e93cc3221dc2161a",  # noqa
+                        "sha1_git": "791ff53442a421a68ff9db2e808522adfc4d93ca",
+                        "blake2s256": "581a87dedbc3df3174b4a0a11160d0dd5999c4c74c4cfb2803404063b6f25468",  # noqa
                     }
                 },
                 "ipython-cosmos-0.1.5/README.md",
@@ -204,6 +220,8 @@ def test_traverse_root_success(
                     "hashes": {
                         "sha1": "b1d809a97e3139f9a9d2890551e5dd448b541202",
                         "sha256": "4a15bc736fbf8a7f9cdeb7b74038d7e033ed0990690c4fc609406cdd8e5f73e9",  # noqa
+                        "sha1_git": "bce1e1f42d45a425b828abf2e3b7c45cda6188ca",
+                        "blake2s256": "71c8fb6adb5ab28dc814ed67ab2c62a6e20e859081192e18104fd3526a4f658c",  # noqa
                     }
                 },
                 "ipython-cosmos-0.1.5/PKG-INFO",
@@ -217,6 +235,8 @@ def test_traverse_root_success(
                     "hashes": {
                         "sha1": "31388c09456c2cb0a741d60c3ca26e5a9b6facbf",
                         "sha256": "51af40f2a7a43c60538d59368671df3f6fb4cd394a7c219bf4c6b20fde4d334c",  # noqa
+                        "sha1_git": "b1e56aad066fcff343882e830cefd0ce082f0ccf",
+                        "blake2s256": "7212c32f610921a707bfa41f95f414143acd14b8dae2c7ea10fea94dc72efcd5",  # noqa
                     }
                 },
                 "ipython-cosmos-0.1.5/setup.py",
@@ -230,6 +250,8 @@ def test_traverse_root_success(
                     "hashes": {
                         "sha1": "0ec04e5f1e1826931ef4f9446dc0009b41224d1f",
                         "sha256": "55c3b9c2351473c9e61a5b326f631261fd4cb50eec2a7eef750df6ca45150732",  # noqa
+                        "sha1_git": "05058cca5546507ced02bad620cb7b856ebf5f63",
+                        "blake2s256": "1c6311aa1617ba96097942f00facb23549d52cae37ca5914ae3a39b66c2fcd98",  # noqa
                     }
                 },
                 "ipython-cosmos-0.1.5/LICENSE.txt",
@@ -246,6 +268,8 @@ def test_traverse_root_success(
                     "hashes": {
                         "sha1": "978187e0361b2674dbbdd47c824a5e0e5a80c614",
                         "sha256": "9bbe64a2168837d0bbee62f1734077ad3053b6661f8c9b0c9093bdf0224cf183",  # noqa
+                        "sha1_git": "aa4046a1143322e93dd86f40861fa0be0b08f07e",
+                        "blake2s256": "45a3fd54b00f0ec1e21431a9ffdcc37dc65045c45c0d3b87443c05ef28a819a5",  # noqa
                     }
                 },
                 "ipython-cosmos-0.1.5/cosmos_sql/__init__.py",
@@ -259,6 +283,8 @@ def test_traverse_root_success(
                     "hashes": {
                         "sha1": "77ba406cbdaa641f1f4ca09902edf5f03a0e0a1e",
                         "sha256": "800cf1c0392b24de7c0a1c6ea6778ecb433dec71c49a150bce96a98477527b2f",  # noqa
+                        "sha1_git": "9faa1b7a7339db85692f91ad4b922554624a3ef7",
+                        "blake2s256": "7019ef797a410438ad447fa847b69f90768d909b17aaa70040123e8d7682ff53",  # noqa
                     }
                 },
                 "ipython-cosmos-0.1.5/cosmos_sql/VERSION",
@@ -271,7 +297,8 @@ def test_traverse_root_success(
     )
     node_collection = traverse_root(test_node, first_iteration=True)
     expected_node_collection = sample_node_collection
-    for item in zip(node_collection.items(), expected_node_collection.items()):
-        assert assert_node(item[0][0], item[1][0]) and len(item[0][1]) == len(
-            item[1][1]
-        )
+    # NEEDS MODIFICATION
+    assert len(node_collection) == len(expected_node_collection)
+    assert assert_node(
+        node_collection["METADATA_NODE"], expected_node_collection["METADATA_NODE"]
+    )

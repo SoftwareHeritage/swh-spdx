@@ -1,28 +1,12 @@
+from typing import Tuple
+
 from spdx_tools.spdx.model import Package, Relationship, RelationshipType
 
 from swh.spdx.node import Node
 from swh.spdx.packages.npm.spdx_fields import DependencyPackageNPM, TopLevelPackageNPM
 
 
-def get_metadata_node(node_collection: dict):
-    """
-    Detects the metadata node in the top level package directory
-
-    Args:
-    node_collection (dict): Collection of nodes found in the root directory,
-        with keys as root-directory or sub-directories and value as a list of child nodes
-
-    Returns:
-        content_object (Node): metadata node
-    """
-    top_level_directory = list(node_collection.keys())[1]
-    for content_object in node_collection[top_level_directory]:
-        if content_object.name == "package.json":
-            return content_object
-    raise Exception("Metadata File not found!")
-
-
-def get_dependency_packages(metadata_dict: dict):
+def get_dependency_packages(metadata_dict: dict) -> dict:
     """
     Detects dependencies of project
 
@@ -54,7 +38,7 @@ def get_dependency_packages(metadata_dict: dict):
 
 def set_top_level_package(
     package_node: Node, node_collection: dict, metadata_node: Node
-):
+) -> Tuple[list, list, str, dict]:
     """
     Creates a SPDX package instance of top level packageand its relationship
     with the SPDX document
@@ -63,6 +47,8 @@ def set_top_level_package(
         package_node (Node): directory node acting as top level package
         node_collection (dict): Collection of nodes found in the root directory,
             with keys as root-directory or sub-directories and value as a list of child nodes
+            and also contains an extra key "METADATA_NODE" with value as the metadata file node
+            which the tool currently supports
         metadata_node (Node): metadata node of top level package
 
     Returns:
@@ -71,6 +57,8 @@ def set_top_level_package(
             with SPDX document
         top_level_package.get_spdx_id() (str): SPDX id of top level package for creating
             relationships
+        top_level_package.metadata_dict (dict): dictionary containing all metadata fields
+            related to top_level_package extracted from its metadata file
     """
     spdx_packages = []
     spdx_package_relationships = []
@@ -90,7 +78,6 @@ def set_top_level_package(
             supplier=top_level_package.get_supplier(),
             files_analyzed=top_level_package.get_file_analyzed_status(),
             verification_code=top_level_package.get_verification_code(),
-            checksums=top_level_package.get_checksums(),
             license_concluded=top_level_package.get_license_concluded(),
             license_info_from_files=top_level_package.get_license_info_from_files(),
             license_declared=top_level_package.get_license_declared(),
@@ -106,10 +93,17 @@ def set_top_level_package(
         # If metadata_node is not present
         raise FileNotFoundError("Requested object doesn't contains metadata file!")
 
-    return spdx_packages, spdx_package_relationships, top_level_package.get_spdx_id()
+    return (
+        spdx_packages,
+        spdx_package_relationships,
+        top_level_package.get_spdx_id(),
+        top_level_package.metadata_dict,
+    )
 
 
-def set_dependency_packages(dependency_packages: dict, top_level_package_spdx_id: str):
+def set_dependency_packages(
+    dependency_packages: dict, top_level_package_spdx_id: str
+) -> Tuple[list, list]:
     """
     Creates a SPDX package instance of dependency packages and their relationships
 

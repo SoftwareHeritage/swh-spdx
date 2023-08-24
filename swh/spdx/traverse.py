@@ -8,13 +8,18 @@ def traverse_root(
     Recursively traverses the root directory and collects each node found.
 
     Args:
-        node (Node): The current node to process.
-        first_iteration (bool): represents if the iteration is first or not
-        node_collection (dict): collection of nodes found
+        node : The current node to process.
+        first_iteration : represents if the iteration is first or not
+        node_collection : Collection of nodes found in the root directory,
+            with keys as root-directory or sub-directories and value as a list of child nodes
+            and also contains an extra key "METADATA_NODE" with value as the metadata file node
+            which the tool currently supports
 
     Returns:
-        node_collection (dict): Collection of nodes found in the root directory,
+        node_collection : Collection of nodes found in the root directory,
         with keys as root-directory or sub-directories and value as a list of child nodes
+        and also contains an extra key "METADATA_NODE" with value as the metadata file node
+        which the tool currently supports
     """
     # Set the path for the root directory node
 
@@ -35,5 +40,7 @@ def traverse_root(
             child.set_path(child_properties)
             # Appending each child node found to the 'value' list of 'key' directory
             node_collection[node].append(child)
+            if child.name == "PKG-INFO" or child.name == "package.json":
+                node_collection["METADATA_NODE"] = child
             traverse_root(node=child, node_collection=node_collection)
     return node_collection
