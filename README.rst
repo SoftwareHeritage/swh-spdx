@@ -14,6 +14,6 @@ To contribute to this package, you'll need to follow these steps:
 2. Install all required test and development dependencies mentioned in requirement.txt files::
 
     $ pip install -r requirements.txt
-     
+
 
 
